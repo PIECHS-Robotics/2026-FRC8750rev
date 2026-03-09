@@ -92,8 +92,8 @@ public static final class EasySwerveModule {
   }
 
   public static final class ShooterSubsystem {
-    public static final SparkFlexConfig flywheelConfig = new SparkFlexConfig();
-    public static final SparkFlexConfig flywheelFollowerConfig = new SparkFlexConfig();
+    public static final SparkMaxConfig flywheelConfig = new SparkMaxConfig();
+    public static final SparkMaxConfig flywheelFollowerConfig = new SparkMaxConfig();
     public static final SparkFlexConfig feederConfig = new SparkFlexConfig();
 
     static {
@@ -123,10 +123,9 @@ public static final class EasySwerveModule {
           .maxAcceleration(10000)
           .allowedProfileError(1);
 
-      // Constants.NeoMotorConstants.kVortexKv is in rpm/V. feedforward.kV is in V/rpm sort we take
-      // the reciprocol.
+      // NEO kv is in rpm/V, while feedforward kV is in V/rpm, so use the reciprocal.
       flywheelConfig.closedLoop
-        .feedForward.kV(nominalVoltage / Constants.NeoMotorConstants.kVortexKv);
+        .feedForward.kV(nominalVoltage / Constants.NeoMotorConstants.kNeoKv);
 
       // Configure the follower flywheel motor to follow the main flywheel motor
       flywheelFollowerConfig.apply(flywheelConfig)

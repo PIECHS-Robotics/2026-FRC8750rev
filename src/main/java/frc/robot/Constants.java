@@ -105,6 +105,7 @@ public final class Constants {
   public static final class NeoMotorConstants {
     public static final double kFreeSpeedRpm = 5676;
     public static final double kVortexKv = 565;   // rpm/V
+    public static final double kNeoKv = 473;    // rpm per volt
   }
 
   public static final class ModuleConstants {    // The EasySwerve module can only be configured with one pinion gears: 12T.
