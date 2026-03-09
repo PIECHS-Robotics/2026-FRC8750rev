@@ -9,7 +9,9 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.RunCommand;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
+//import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+//import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.commands.Autos;
 import frc.robot.Constants.OIConstants;
@@ -31,8 +33,8 @@ public class RobotContainer {
   private final ShooterSubsystem m_shooter = new ShooterSubsystem();
 
   // The driver's controller
-  private final CommandXboxController m_driverController =
-      new CommandXboxController(OIConstants.kDriverControllerPort);
+  private final CommandPS4Controller m_driverController =
+      new CommandPS4Controller(OIConstants.kDriverControllerPort);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -47,11 +49,11 @@ public class RobotContainer {
             () ->
                 m_robotDrive.drive(
                     -MathUtil.applyDeadband(
-                        m_driverController.getLeftY(), OIConstants.kDriveDeadband),
+                        m_driverController.getRawAxis(1), OIConstants.kDriveDeadband),
                     -MathUtil.applyDeadband(
-                        m_driverController.getLeftX(), OIConstants.kDriveDeadband),
+                        m_driverController.getRawAxis(0), OIConstants.kDriveDeadband),
                     -MathUtil.applyDeadband(
-                        m_driverController.getRightX(), OIConstants.kDriveDeadband),
+                        m_driverController.getRawAxis(4), OIConstants.kDriveDeadband),
                     true),
             m_robotDrive).withName("Robot Drive Default"));
 
@@ -78,23 +80,23 @@ public class RobotContainer {
    */
   private void configureBindings() {
     // Left Stick Button -> Set swerve to X
-    m_driverController.leftStick().whileTrue(m_robotDrive.setXCommand());
+    //new JoystickButton(m_driverController, 4)
+    //        .whileTrue(m_robotDrive.setXCommand());
+    m_driverController.L3().whileTrue(m_robotDrive.setXCommand());
 
     // Start Button -> Zero swerve heading
-    m_driverController.start().onTrue(m_robotDrive.zeroHeadingCommand());
+    m_driverController.options().onTrue(m_robotDrive.zeroHeadingCommand());
 
     // Right Trigger -> Run fuel intake in reverse
-    m_driverController
-      .rightTrigger(OIConstants.kTriggerButtonThreshold)
-      .whileTrue(m_intake.runIntakeCommand());
+    // R2/L2 analog threshold triggers
+    new Trigger(() -> m_driverController.getR2Axis() > OIConstants.kTriggerButtonThreshold)
+    .whileTrue(m_intake.runIntakeCommand());
 
-    // Left Trigger -> Run fuel intake in reverse
-    m_driverController
-      .leftTrigger(OIConstants.kTriggerButtonThreshold)
-      .whileTrue(m_intake.runExtakeCommand());
+    new Trigger(() -> m_driverController.getL2Axis() > OIConstants.kTriggerButtonThreshold)
+    .whileTrue(m_intake.runExtakeCommand());
 
     // Y Button -> Run intake and run the shooter flywheel and feeder
-    m_driverController.y().toggleOnTrue(m_shooter.runShooterCommand().alongWith(m_intake.runIntakeCommand()));
+    m_driverController.triangle().toggleOnTrue(m_shooter.runShooterCommand().alongWith(m_intake.runIntakeCommand()));
   }
 
   /**

@@ -4,6 +4,8 @@
 
 package frc.robot.subsystems;
 
+//import com.kauailabs.navx.frc.AHRS;
+import com.studica.frc.AHRS;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -11,11 +13,12 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.wpilibj.ADIS16470_IMU;
-import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
+//import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DriveConstants;
+//import edu.wpi.first.wpilibj.ADIS16470_IMU;
+//import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
 
 public class DriveSubsystem extends SubsystemBase {
   // Create EasySwerveModules
@@ -47,14 +50,14 @@ private final EasySwerveModule m_rearRight = new EasySwerveModule(
     DriveConstants.kRearRightDrivingMotorOnBottom,
     DriveConstants.kRearRightTurningMotorOnBottom);
 
-  // The gyro sensor
-  private final ADIS16470_IMU m_gyro = new ADIS16470_IMU();
+  // The gyro sensor. navx2 via MXP
+  private final AHRS m_gyro = new AHRS(AHRS.NavXComType.kMXP_SPI); //navx = new AHRS(AHRS.NavXComType.kMXP_SPI);
 
   // Odometry class for tracking robot pose
   SwerveDriveOdometry m_odometry =
       new SwerveDriveOdometry(
           DriveConstants.kDriveKinematics,
-          Rotation2d.fromDegrees(m_gyro.getAngle(IMUAxis.kY)),
+          getGyroRotation2d(),
           new SwerveModulePosition[] {
             m_frontLeft.getPosition(),
             m_frontRight.getPosition(),
@@ -63,19 +66,26 @@ private final EasySwerveModule m_rearRight = new EasySwerveModule(
           });
 
   /** Creates a new DriveSubsystem. */
-  public DriveSubsystem() {}
+  public DriveSubsystem() {
+    m_gyro.reset(); //zero yaw at startup
+  }
+
+  private Rotation2d getGyroRotation2d() {
+    // The gyro angle needs to be negated because WPILib gyros are CW positive.
+    return Rotation2d.fromDegrees(getHeading());
+  }
 
   @Override
   public void periodic() {
     // Update the odometry in the periodic block
     m_odometry.update(
-        Rotation2d.fromDegrees(m_gyro.getAngle(IMUAxis.kY)),
+        getGyroRotation2d(),
         new SwerveModulePosition[] {
           m_frontLeft.getPosition(),
           m_frontRight.getPosition(),
           m_rearLeft.getPosition(),
           m_rearRight.getPosition()
-        });
+         });
   }
 
   /**
@@ -94,7 +104,7 @@ private final EasySwerveModule m_rearRight = new EasySwerveModule(
    */
   public void resetOdometry(Pose2d pose) {
     m_odometry.resetPosition(
-        Rotation2d.fromDegrees(m_gyro.getAngle(IMUAxis.kY)),
+        getGyroRotation2d(),
         new SwerveModulePosition[] {
           m_frontLeft.getPosition(),
           m_frontRight.getPosition(),
@@ -113,29 +123,27 @@ private final EasySwerveModule m_rearRight = new EasySwerveModule(
    * @param fieldRelative Whether the provided x and y speeds are relative to the field.
    */
   public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
-    // Convert the commanded speeds into the correct units for the drivetrain
     double xSpeedDelivered = xSpeed * DriveConstants.kMaxSpeedMetersPerSecond;
     double ySpeedDelivered = ySpeed * DriveConstants.kMaxSpeedMetersPerSecond;
-    double rotDelivered = rot * DriveConstants.kMaxAngularSpeed;
+    double rotDelivered = rot * DriveConstants.kMaxAngularSpeedRadPerSec;
 
-    var swerveModuleStates =
+    SwerveModuleState[] swerveModuleStates =
         DriveConstants.kDriveKinematics.toSwerveModuleStates(
             fieldRelative
                 ? ChassisSpeeds.fromFieldRelativeSpeeds(
-                    xSpeedDelivered,
-                    ySpeedDelivered,
-                    rotDelivered,
-                    Rotation2d.fromDegrees(m_gyro.getAngle(IMUAxis.kY)))
+                    xSpeedDelivered, ySpeedDelivered, rotDelivered, getGyroRotation2d())
                 : new ChassisSpeeds(xSpeedDelivered, ySpeedDelivered, rotDelivered));
+
     SwerveDriveKinematics.desaturateWheelSpeeds(
         swerveModuleStates, DriveConstants.kMaxSpeedMetersPerSecond);
+
     m_frontLeft.setDesiredState(swerveModuleStates[0]);
     m_frontRight.setDesiredState(swerveModuleStates[1]);
     m_rearLeft.setDesiredState(swerveModuleStates[2]);
     m_rearRight.setDesiredState(swerveModuleStates[3]);
   }
 
-  /** Sets the wheels into an X formation to prevent movement. */
+  /** Sets wheels into an X formation to resist movement. */
   public Command setXCommand() {
     return this.run(
         () -> {
@@ -146,11 +154,7 @@ private final EasySwerveModule m_rearRight = new EasySwerveModule(
         });
   }
 
-  /**
-   * Sets the swerve ModuleStates.
-   *
-   * @param desiredStates The desired SwerveModule states.
-   */
+  /** Sets module states. */
   public void setModuleStates(SwerveModuleState[] desiredStates) {
     SwerveDriveKinematics.desaturateWheelSpeeds(
         desiredStates, DriveConstants.kMaxSpeedMetersPerSecond);
@@ -160,7 +164,7 @@ private final EasySwerveModule m_rearRight = new EasySwerveModule(
     m_rearRight.setDesiredState(desiredStates[3]);
   }
 
-  /** Resets the drive encoders to currently read a position of 0. */
+  /** Resets drive encoders. */
   public void resetEncoders() {
     m_frontLeft.resetEncoders();
     m_rearLeft.resetEncoders();
@@ -168,26 +172,24 @@ private final EasySwerveModule m_rearRight = new EasySwerveModule(
     m_rearRight.resetEncoders();
   }
 
-  /** Zeroes the heading of the robot. */
+  /** Zeroes robot heading (yaw). */
   public Command zeroHeadingCommand() {
-    return this.runOnce(() -> m_gyro.reset());
+    return this.runOnce(m_gyro::zeroYaw);
   }
 
   /**
-   * Returns the heading of the robot.
+   * Robot heading in degrees.
    *
-   * @return the robot's heading in degrees, from -180 to 180
+   * @return heading in degrees (approximately -180..180 from navX yaw)
    */
   public double getHeading() {
-    return Rotation2d.fromDegrees(m_gyro.getAngle(IMUAxis.kY)).getDegrees();
+    return m_gyro.getYaw() * (DriveConstants.kGyroReversed ? -1.0 : 1.0);
   }
 
   /**
-   * Returns the turn rate of the robot.
-   *
-   * @return The turn rate of the robot, in degrees per second
+   * Turn rate in degrees/sec.
    */
   public double getTurnRate() {
-    return m_gyro.getRate(IMUAxis.kY) * (DriveConstants.kGyroReversed ? -1.0 : 1.0);
+    return m_gyro.getRate() * (DriveConstants.kGyroReversed ? -1.0 : 1.0);
   }
 }

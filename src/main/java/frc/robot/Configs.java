@@ -22,59 +22,53 @@ import frc.robot.Constants.ModuleConstants;
 public final class Configs {
   private static final  double nominalVoltage = 12.0;
 
-  public static final class EasySwerveModule {
-    public static final SparkMaxConfig drivingConfig = new SparkMaxConfig();
-    public static final SparkMaxConfig turningConfig = new SparkMaxConfig();
-    static {
-      // Use module constants to calculate conversion factors and feed forward gain.
-      double drivingFactor = ModuleConstants.kWheelDiameterMeters * Math.PI 
-        / ModuleConstants.kDrivingMotorReduction;
-      double turningFactor = 2 * Math.PI;
-      double drivingVelocityFeedForward = nominalVoltage / ModuleConstants.kDriveWheelFreeSpeedRps;
+public static final class EasySwerveModule {
+  public static final SparkMaxConfig drivingConfig = new SparkMaxConfig();
+  public static final SparkMaxConfig turningConfig = new SparkMaxConfig();
 
-      drivingConfig
-        .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(60);
-      drivingConfig
-        .encoder
-          .positionConversionFactor(drivingFactor) // meters
-          .velocityConversionFactor(drivingFactor / 60.0); // meters per second
-      drivingConfig
-        .closedLoop
-          .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-          // These are example gains you may need to adjust them for your own robot!
-          .pid(0.04, 0, 0)
-          .outputRange(-1, 1)
-          .feedForward
-            .kV(drivingVelocityFeedForward);
+  static {
+    // MK4i L2 conversion factors
+    final double drivingFactor = 0.047286787; // meters per motor rotation
+    final double turningFactor = 360.0;       // degrees per rotation (project uses degrees)
+    final double drivingVelocityFeedForward = nominalVoltage / ModuleConstants.kDriveWheelFreeSpeedRps;
 
-      turningConfig
-        .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(60);
-      turningConfig
-        .absoluteEncoder
-          // Do not invert the turning encoder, since the output shaft rotates in the same
-          // direction as the steering motor in the EasySwerve Module.
-          .inverted(false)
-          .positionConversionFactor(turningFactor) // radians
-          .velocityConversionFactor(turningFactor / 60.0)  // radians per second
-          // These apply to REV Through Bore Encoder V2 (for V1, set them both to 1.0):
-          .startPulseUs(3.88443797)
-          .endPulseUs(1.94221899);
-      turningConfig
-        .closedLoop
-          .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
-          // These are example gains you may need to adjust them for your own robot!
-          .pid(1, 0, 0)
-          .outputRange(-1, 1)
-          // Enable PID wrap around for the turning motor. This will allow the PID
-          // controller to go through 0 to get to the setpoint i.e. going from 350 degrees
-          // to 10 degrees will go through 0 rather than the other direction which is a
-          // longer route.
-          .positionWrappingEnabled(true)
-          .positionWrappingInputRange(0, turningFactor);
-    }
+    drivingConfig
+      .idleMode(IdleMode.kBrake)
+      .smartCurrentLimit(40)       // Drive current limit
+      .openLoopRampRate(0.25)
+      .closedLoopRampRate(0.25);
+
+    drivingConfig.encoder
+      .positionConversionFactor(drivingFactor)         // meters
+      .velocityConversionFactor(drivingFactor / 60.0); // m/s
+
+    drivingConfig.closedLoop
+      .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+      .pid(0.04, 0, 0)
+      .outputRange(-1, 1)
+      .feedForward.kV(drivingVelocityFeedForward);
+
+    turningConfig
+      .idleMode(IdleMode.kBrake)
+      .smartCurrentLimit(20)       // Angle current limit
+      .openLoopRampRate(0.25)
+      .closedLoopRampRate(0.25);
+
+    turningConfig.absoluteEncoder
+      .inverted(false)
+      .positionConversionFactor(turningFactor)         // degrees
+      .velocityConversionFactor(turningFactor / 60.0)  // deg/sec
+      .startPulseUs(3.88443797)
+      .endPulseUs(1.94221899);
+
+    turningConfig.closedLoop
+      .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
+      .pid(.04, 0, 0.000)
+      .outputRange(-1, 1)
+      .positionWrappingEnabled(true)
+      .positionWrappingInputRange(0, turningFactor);   // 0..360 degrees
   }
+}
 
   public static final class IntakeSubsystem {
     public static final SparkFlexConfig intakeConfig = new SparkFlexConfig();

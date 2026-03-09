@@ -53,13 +53,13 @@ public final class Constants {
     // Driving Parameters - Note that these are not the maximum capable speeds of
     // the robot, rather the allowed maximum speeds
     public static final double kMaxSpeedMetersPerSecond = 4.8;
-    public static final double kMaxAngularSpeed = 2 * Math.PI; // radians per second
+    public static final double kMaxAngularSpeedRadPerSec = 2 * Math.PI; // radians per second
 
     // Chassis configuration
     // Distance between centers of right and left wheels on robot
-    public static final double kTrackWidth = Units.inchesToMeters(22.5);
+    public static final double kTrackWidth = Units.inchesToMeters(27);
     // Distance between front and back wheels on robot
-    public static final double kWheelBase = Units.inchesToMeters(22.5);
+    public static final double kWheelBase = Units.inchesToMeters(27);
 
     public static final SwerveDriveKinematics kDriveKinematics =
         new SwerveDriveKinematics(
@@ -68,12 +68,12 @@ public final class Constants {
             new Translation2d(-kWheelBase / 2, kTrackWidth / 2),
             new Translation2d(-kWheelBase / 2, -kTrackWidth / 2));
 
-    // Angular offsets of the modules relative to the chassis in radians
-    private static final double kEasySwerveAngularOffsetCompensation = Math.PI / 4;
-    public static final double kFrontLeftChassisAngularOffset = (-Math.PI / 2) + kEasySwerveAngularOffsetCompensation;
-    public static final double kFrontRightChassisAngularOffset = 0 + kEasySwerveAngularOffsetCompensation;
-    public static final double kBackLeftChassisAngularOffset = Math.PI + kEasySwerveAngularOffsetCompensation;
-    public static final double kBackRightChassisAngularOffset = (Math.PI / 2) + kEasySwerveAngularOffsetCompensation;
+    // Angular offsets of the modules relative to the chassis in DEGREES
+    // Captured with all wheels mechanically aligned straight forward.
+    public static final double kFrontLeftChassisAngularOffset = 51.249;   // CAN 14
+    public static final double kFrontRightChassisAngularOffset = 270.936; // CAN 10
+    public static final double kBackLeftChassisAngularOffset = 116.245;   // CAN 12
+    public static final double kBackRightChassisAngularOffset = 26.903;   // CAN 8
 
     // The EasySwerve module allows installation of the motors either on top or bottom of the module.
     // These constants configure the location of the motors. The default configuration is with both
@@ -83,10 +83,10 @@ public final class Constants {
     public static final boolean kFrontRightDrivingMotorOnBottom = true;
     public static final boolean kRearRightDrivingMotorOnBottom = true;
 
-    public static final boolean kFrontLeftTurningMotorOnBottom = true;
-    public static final boolean kRearLeftTurningMotorOnBottom = true;
-    public static final boolean kFrontRightTurningMotorOnBottom = true;
-    public static final boolean kRearRightTurningMotorOnBottom = true;
+    public static final boolean kFrontLeftTurningMotorOnBottom = false;
+    public static final boolean kRearLeftTurningMotorOnBottom = false;
+    public static final boolean kFrontRightTurningMotorOnBottom = false;
+    public static final boolean kRearRightTurningMotorOnBottom = false;
 
     // SPARK MAX CAN IDs
     public static final int kFrontLeftDrivingCanId = 15;
@@ -111,18 +111,30 @@ public final class Constants {
     public static final int kDrivingMotorPinionTeeth = 12;
 
     // Calculations required for driving motor conversion factors and feed forward
+    //NEO Free Speed = 5676 RPM, which is 5676 / 60 RPS
     public static final double kDrivingMotorFreeSpeedRps = NeoMotorConstants.kFreeSpeedRpm / 60;
     public static final double kWheelDiameterMeters = Units.inchesToMeters(4);
     public static final double kWheelCircumferenceMeters = kWheelDiameterMeters * Math.PI;
     // 45 teeth on the wheel's bevel gear, 30 teeth on the first-stage spur gear,
     // 15 teeth on the bevel pinion
-    public static final double kDrivingWheelBevelGearTeeth = 45.0;
-    public static final double kDrivingWheelFirstStageSpurGearTeeth = 30.0;
-    public static final double kDrivingMotorBevelPinionTeeth = 15.0;
-    public static final double kDrivingMotorReduction = (kDrivingWheelBevelGearTeeth * kDrivingWheelFirstStageSpurGearTeeth)
-        / (kDrivingMotorPinionTeeth * kDrivingMotorBevelPinionTeeth);
+    //public static final double kDrivingWheelBevelGearTeeth = 45.0;
+    //public static final double kDrivingWheelFirstStageSpurGearTeeth = 30.0;
+    //public static final double kDrivingMotorBevelPinionTeeth = 15.0;
+    public static final double kDrivingMotorReduction = 6.75;
+    public static final double kTurningMotorReduction = 150 / 7.0;
     public static final double kDriveWheelFreeSpeedRps = (kDrivingMotorFreeSpeedRps * kWheelCircumferenceMeters)
         / kDrivingMotorReduction;
+
+    //Encoder conversion factors
+    //Drive position conversion (meters per motor rotation).
+    public static final double kDrivingEncoderPositionFactor = .047286787; // meters  
+    
+    //Drive velocity conversion (meters per second per motor rpm).
+    public static final double kDrivingEncoderVelocityFactor = kDrivingEncoderPositionFactor / 60.0; // meters per second per motor rpm
+
+    //Turning position conversion (degrees per motor rotation).
+    public static final double kTurningEncoderPositionFactor = 360;
+    public static final double kTurningEncoderVelocityFactor = kTurningEncoderPositionFactor / 60.0; // degrees per second per motor rpm
   }
 
   public static final class OIConstants {
